@@ -1,0 +1,58 @@
+name: Cập nhật và đăng website
+
+on:
+  schedule:
+    # 03:13 sáng thứ Hai giờ Việt Nam (20:13 Chủ nhật giờ UTC)
+    - cron: "13 20 * * 0"
+  # nút "Run workflow" để chạy tay bất cứ lúc nào
+  workflow_dispatch:
+  # chạy lại khi sửa giao diện (index.html, muc-luc.html, assets/...)
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: cap-nhat
+  cancel-in-progress: false
+
+jobs:
+  cap-nhat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    environment:
+      name: github-pages
+      url: ${{ steps.dang.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Kéo bài từ blog và tra Zenodo
+        run: python scripts/cap_nhat.py
+
+      - name: Lưu dữ liệu mới vào kho
+        run: |
+          git config user.name "cap-nhat-tu-dong"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Không có gì mới."
+          else
+            git commit -m "Cập nhật từ blog $(TZ=Asia/Ho_Chi_Minh date '+%d/%m/%Y %H:%M')"
+            git push
+          fi
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - id: dang
+        uses: actions/deploy-pages@v4
