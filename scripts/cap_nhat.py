@@ -108,8 +108,7 @@ def keo_feed(nguon: Nguon, loai: str) -> list[dict]:
             break
         tat_ca.extend(muc)
         bat_dau += len(muc)
-        if len(muc) < buoc and not nguon.mau:
-            break
+      
     return tat_ca
 
 
