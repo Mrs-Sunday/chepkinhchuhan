@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mục lục · Chép Kinh Chữ Hán</title>
+<meta name="description" content="Mục lục file chép kinh chữ Hán có đính âm Hán Việt, tra theo mã tạng, tên Hán, tên Hán Việt, kèm DOI Zenodo.">
+<link rel="stylesheet" href="assets/kieu.css">
+</head>
+<body>
+<header class="dau-trang">
+  <a class="ten-site" href="index.html"><span lang="zh-Hant">冩漢字佛經</span> Chép Kinh Chữ Hán</a>
+  <nav><a href="muc-luc.html" aria-current="page">Mục lục</a></nav>
+</header>
+
+<main class="muc-luc">
+  <h1>Mục lục</h1>
+  <form class="loc" id="loc" role="search" onsubmit="return false">
+    <div class="o-chu">
+      <label for="q">Tìm</label>
+      <input id="q" type="search" placeholder="Ví dụ: T02n0120, 央掘魔羅, ương quật" autocomplete="off">
+    </div>
+    <div>
+      <label for="tang">Tạng</label>
+      <select id="tang">
+        <option value="">Tất cả</option>
+        <option value="T">Đại Chánh Tạng</option>
+        <option value="X">Vạn Tục Tạng</option>
+        <option value="khac">Bài viết khác</option>
+      </select>
+    </div>
+    <div>
+      <label for="bo">Bộ</label>
+      <select id="bo"><option value="">Tất cả</option></select>
+    </div>
+  </form>
+  <p class="ket-qua" id="ket-qua" aria-live="polite"></p>
+  <div id="danh-sach"></div>
+</main>
+
+<footer class="chan-trang">
+  <p>DOI dẫn tới bản lưu trên Zenodo, tải được file kể cả khi blog gốc không truy cập được. “Bài lưu” là bản sao bài viết trên trang này.</p>
+  <p id="cap-nhat"></p>
+</footer>
+
+<script src="data/muc-luc.js"></script>
+<script src="assets/chung.js"></script>
+<script>
+(function () {
+  "use strict";
+  var C = window.CKCH, D = window.MUC_LUC;
+  var hop = document.getElementById("danh-sach");
+  var oKetQua = document.getElementById("ket-qua");
+  if (!D) { oKetQua.textContent = "Chưa có dữ liệu mục lục. Chạy bước cập nhật trên GitHub để tạo."; return; }
+
+  var TEN_TANG = { T: ["Đại Chánh Tạng", "大正藏"], X: ["Vạn Tục Tạng", "卍續藏"] };
+  document.getElementById("cap-nhat").textContent = "Cập nhật lần cuối " + C.ngayVN(D.tong.cap_nhat) + ".";
+
+  // ---- dựng danh sách một lần, lọc bằng cách ẩn/hiện
+  var nhom = [], nhomHienTai = null, dong = [];
+  D.muc.forEach(function (d) {
+    var khoa = d.ma ? d.ma.charAt(0) + d.ma.slice(1, 3) : "khac";
+    if (!nhomHienTai || nhomHienTai.khoa !== khoa) {
+      var sec = C.el("section", "nhom");
+      var h2 = C.el("h2");
+      if (d.ma) {
+        var t = TEN_TANG[d.ma.charAt(0)];
+        h2.appendChild(document.createTextNode(t[0] + ", tập " + d.ma.slice(1, 3)));
+        var han = C.el("span", "han", t[1] + " 第" + parseInt(d.ma.slice(1, 3), 10) + "冊");
+        han.lang = "zh-Hant"; h2.appendChild(han);
+      } else {
+        h2.textContent = "Bài viết khác";
+      }
+      sec.appendChild(h2);
+      hop.appendChild(sec);
+      nhomHienTai = { khoa: khoa, el: sec, dong: [] };
+      nhom.push(nhomHienTai);
+    }
+    var r = taoDong(d);
+    nhomHienTai.el.appendChild(r);
+    var muc = { d: d, el: r, tang: d.ma ? d.ma.charAt(0) : "khac" };
+    nhomHienTai.dong.push(muc);
+    dong.push(muc);
+  });
+
+  function lienKet(href, chu, ngoai) {
+    var a = C.el("a", null, chu); a.href = href;
+    if (ngoai) a.rel = "noopener";
+    return a;
+  }
+
+  function taoDong(d) {
+    var r = C.el("article", d.ma ? "dong" : "dong khac");
+    if (d.ma) r.appendChild(C.el("div", "ma", d.ma));
+    var ten = C.el("div", "ten");
+    if (d.ma) {
+      var han = C.el("div", "han", d.han || ""); han.lang = "zh-Hant";
+      ten.appendChild(han);
+      if (d.hv) ten.appendChild(C.el("div", "hv", d.hv));
+    } else {
+      ten.appendChild(C.el("div", null, d.tieu_de));
+    }
+    r.appendChild(ten);
+    r.appendChild(C.el("div", "quyen", d.quyen ? d.quyen + " quyển" : C.ngayVN(d.ngay)));
+    var hd = C.el("div", "hanh-dong");
+    if (d.doi) hd.appendChild(lienKet("https://doi.org/" + d.doi, "DOI " + d.doi, true));
+    hd.appendChild(lienKet(d.tep, "Bài lưu"));
+    if (d.khong_con_tren_blog) hd.appendChild(C.el("span", "ghi-chu", "Không còn trên blog gốc"));
+    else if (d.goc) hd.appendChild(lienKet(d.goc, "Blog gốc", true));
+    r.appendChild(hd);
+    return r;
+  }
+
+  // ---- bộ lọc theo bộ
+  var demBo = {};
+  D.muc.forEach(function (d) { (d.bo || []).forEach(function (b) { demBo[b] = (demBo[b] || 0) + 1; }); });
+  var chonBo = document.getElementById("bo");
+  Object.keys(demBo).sort(function (a, b) { return a.localeCompare(b, "vi"); }).forEach(function (b) {
+    var o = C.el("option", null, b + " (" + demBo[b] + ")"); o.value = b; chonBo.appendChild(o);
+  });
+
+  var oTim = document.getElementById("q"), chonTang = document.getElementById("tang");
+  var ts = new URLSearchParams(location.search);
+  oTim.value = ts.get("q") || "";
+  chonTang.value = ts.get("tang") || "";
+  if (ts.get("bo")) chonBo.value = ts.get("bo");
+
+  function loc() {
+    var tu = C.khongDau(C.chuanHoaMa(oTim.value.trim())).split(/\s+/).filter(Boolean);
+    var tang = chonTang.value, bo = chonBo.value, hien = 0, quyen = 0;
+    dong.forEach(function (m) {
+      var ok = (!tang || m.tang === tang) &&
+               (!bo || (m.d.bo || []).indexOf(bo) !== -1) &&
+               tu.every(function (w) { return m.d.tim.indexOf(w) !== -1; });
+      m.el.hidden = !ok;
+      if (ok) { hien++; quyen += m.d.quyen || 0; }
+    });
+    nhom.forEach(function (n) { n.el.hidden = n.dong.every(function (m) { return m.el.hidden; }); });
+
+    var locDangBat = tu.length || tang || bo;
+    oKetQua.textContent = hien
+      ? (locDangBat ? "Tìm thấy " : "Tất cả ") + C.so(hien) + " mục" + (quyen ? ", " + C.so(quyen) + " quyển." : ".")
+      : "";
+    var trong = document.getElementById("trong");
+    if (!hien) {
+      if (!trong) {
+        trong = C.el("p", "trong"); trong.id = "trong";
+        trong.appendChild(document.createTextNode("Không có mục nào khớp. Thử gõ mã tạng như T09n0262, hoặc "));
+        var b = C.el("button", null, "xóa bộ lọc"); b.type = "button";
+        b.onclick = function () { oTim.value = ""; chonTang.value = ""; chonBo.value = ""; loc(); oTim.focus(); };
+        trong.appendChild(b); trong.appendChild(document.createTextNode("."));
+        hop.appendChild(trong);
+      }
+    } else if (trong) { trong.remove(); }
+
+    var moi = new URLSearchParams();
+    if (oTim.value.trim()) moi.set("q", oTim.value.trim());
+    if (tang) moi.set("tang", tang);
+    if (bo) moi.set("bo", bo);
+    var qs = moi.toString();
+    try { history.replaceState(null, "", qs ? "?" + qs : location.pathname); } catch (e) {}
+  }
+
+  var hen;
+  oTim.addEventListener("input", function () { clearTimeout(hen); hen = setTimeout(loc, 120); });
+  chonTang.addEventListener("change", loc);
+  chonBo.addEventListener("change", loc);
+  loc();
+})();
+</script>
+</body>
+</html>
