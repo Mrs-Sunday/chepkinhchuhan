@@ -116,7 +116,7 @@
     if (d.doi) hd.appendChild(lienKet("https://doi.org/" + d.doi, "DOI " + d.doi, true));
     hd.appendChild(lienKet(d.tep, "Bài lưu"));
     if (d.khong_con_tren_blog) hd.appendChild(C.el("span", "ghi-chu", "Không còn trên blog gốc"));
-    else if (d.goc) hd.appendChild(lienKet(d.goc, "Blog gốc", true));
+    else if (d.goc) hd.appendChild(lienKet(d.goc, d.loai === "zenodo" || d.loai === "tay" ? "Zenodo" : "Blog gốc", true));
     r.appendChild(hd);
     return r;
   }

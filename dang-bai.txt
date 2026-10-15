@@ -1,0 +1,16 @@
+# ĐĂNG BÀI TAY
+# Dùng khi muốn thêm một bộ kinh vào website mà không qua blog (ví dụ khi blog gốc không còn).
+# Thông thường KHÔNG cần: website tự tìm các bản ghi mới của Hoa Đạo trên Zenodo.
+# Dùng file này khi cần sửa tên cho đúng, hoặc thêm tài liệu chưa lên Zenodo.
+#
+# Mỗi dòng một bộ. Các cột cách nhau bằng dấu |
+#   mã tạng | tên Hán | tên Hán Việt | số quyển | DOI | bộ
+# - Cột "bộ" có thể bỏ trống: website tự xếp theo mã tạng (T… → bộ tương ứng, X… → Vạn Tục Tạng,
+#   không có mã → Danh mục khác).
+# - DOI ghi dạng 10.5281/zenodo.12345678 hoặc dán cả link https://doi.org/… đều được.
+# - Dòng bắt đầu bằng dấu # là ghi chú, website bỏ qua.
+#
+# Ví dụ (bỏ dấu # ở đầu dòng để dùng):
+# T30n1566 | 般若燈論釋 | Bát Nhã Đăng Luận Thích | 15 | 10.5281/zenodo.12345678 |
+# CC0003 | 禪門日誦 | Thiền Môn Nhật Tụng | 1 | 10.5281/zenodo.12345679 | Danh mục khác
+

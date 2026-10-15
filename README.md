@@ -2,7 +2,9 @@
 
 Bản dự phòng của blog [hoadaochepkinhchuhan.blogspot.com](https://hoadaochepkinhchuhan.blogspot.com/), chạy trên GitHub Pages.
 
-Mỗi sáng thứ Hai, GitHub tự kéo bài mới từ blog, tra file trên Zenodo theo DOI, lưu lại bài viết và ảnh bìa, rồi đăng lại website. Không cần cập nhật tay.
+Website: **https://hoadaochepkinhchuhan.github.io/chepkinhchuhan/**
+
+Mỗi sáng lúc 3:13 (giờ Việt Nam), GitHub tự kéo bài mới từ blog, tìm bản ghi mới của Hoa Đạo trên Zenodo, lưu lại bài viết và ảnh bìa, rồi đăng lại website. Không cần cập nhật tay.
 
 ## Website gồm những gì
 
@@ -17,7 +19,7 @@ Mỗi sáng thứ Hai, GitHub tự kéo bài mới từ blog, tra file trên Zen
 Một vài nguyên tắc của bản dự phòng:
 
 - **Không bao giờ xóa.** Bài nào bị gỡ khỏi blog vẫn được giữ lại, và ghi chú "Không còn trên blog gốc" trong mục lục.
-- **Blog lỗi thì đứng yên.** Nếu lần chạy nào không lấy được bài nào từ blog, script dừng lại, giữ nguyên dữ liệu cũ, và GitHub gửi email báo lỗi.
+- **Blog lỗi thì vẫn chạy tiếp.** Nếu không lấy được bài nào từ blog, website giữ nguyên các bài đã lưu (không ghi chú gì) và vẫn cập nhật tài liệu mới từ Zenodo. Trang chủ ghi thêm một dòng "Blog gốc hiện không truy cập được".
 - **File kinh không chép vào đây.** File DOCX/PDF đã nằm trên Zenodo (lưu trữ lâu dài của CERN), website chỉ dẫn tới đó bằng DOI.
 
 ---
@@ -67,13 +69,27 @@ Làm tương tự với file rỗng `.nojekyll` (tạo file tên `.nojekyll`, đ
 
 ## Sau khi cài xong
 
-**Không cần làm gì thêm.** Mỗi sáng thứ Hai website tự cập nhật. Muốn cập nhật ngay sau khi đăng bài mới: tab **Actions** → **Run workflow**.
+**Không cần làm gì thêm.** Mỗi sáng website tự cập nhật. Muốn cập nhật ngay sau khi đăng bài mới: tab **Actions** → **Run workflow**.
 
 **Khi nhận email báo lỗi từ GitHub:** thường là blog gốc hoặc Zenodo tạm thời không phản hồi. Đợi một lúc rồi bấm **Re-run jobs**. Nếu blog gốc thật sự mất, website vẫn giữ nguyên bản cuối cùng.
 
 **GitHub có thể tạm ngưng lịch chạy** nếu kho lâu không có hoạt động (60 ngày). GitHub sẽ gửi email báo trước; chỉ cần vào tab **Actions** bấm bật lại.
 
 **Muốn sửa chữ trên trang chủ:** mở `index.html` trên GitHub, bấm biểu tượng bút chì, sửa, **Commit changes**. Website tự đăng lại.
+
+## Đăng tài liệu mới khi blog gốc không còn
+
+Website có ba nguồn, theo thứ tự ưu tiên:
+
+| Nguồn | Cách đăng | Trang bài trên website có gì |
+|---|---|---|
+| **Blog gốc** | Đăng bài trên Blogspot như thường lệ | Đủ cả: ảnh bìa, lời giới thiệu, file tải |
+| **Zenodo** (tự động) | Chỉ cần đăng lên Zenodo dưới tên Hoa Đạo (ORCID 0009-0002-2778-8099). Sáng hôm sau website tự có | Mã tạng, tên Hán, tên Hán Việt, mô tả trên Zenodo, file tải |
+| **dang-bai.txt** (tay) | Mở file `dang-bai.txt` trên GitHub, bấm bút chì, thêm một dòng, commit | Như Zenodo; dùng để sửa tên cho đúng hoặc thêm tài liệu chưa lên Zenodo |
+
+Mục nào đã có bài blog thì không lấy thêm từ Zenodo hay `dang-bai.txt`, để khỏi trùng. Nếu bài blog thiếu DOI mà Zenodo có bản ghi cùng mã tạng, website tự bổ sung DOI.
+
+Website tự xếp bộ theo mã tạng (T0001–0151 vào Bộ A Hàm, T0220–0261 vào Bộ Bát Nhã…, X… vào Vạn Tục Tạng, không có mã thì vào Danh mục khác). Tiêu đề trên Zenodo nên giữ dạng giống blog, ví dụ `T30N1566 般若燈論釋 Bát Nhã Đăng Luận Thích (15 quyển)`, để website tách được mã, tên và số quyển.
 
 ## Gắn tên miền riêng (tùy chọn)
 

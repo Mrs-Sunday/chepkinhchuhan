@@ -44,7 +44,7 @@
   <section class="ve">
     <div>
       <h2>Về trang này</h2>
-      <p>Đây là bản dự phòng của blog Chép Kinh Chữ Hán. Trang tự cập nhật mỗi tuần từ blog gốc, nên nếu blog gốc gặp sự cố, mục lục và bài viết vẫn còn nguyên ở đây.</p>
+      <p>Đây là bản dự phòng của blog Chép Kinh Chữ Hán. Trang tự cập nhật mỗi ngày từ blog gốc và từ Zenodo, nên nếu blog gốc gặp sự cố, mục lục và bài viết vẫn còn nguyên ở đây, và tài liệu mới vẫn tiếp tục được thêm vào.</p>
       <p>File đính âm được lưu trữ lâu dài trên Zenodo, mỗi bộ kinh có một mã DOI riêng. Bấm vào DOI ở mục lục là tải được file, kể cả khi blog không truy cập được.</p>
       <p>Tài liệu đính âm phát hành theo giấy phép <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.vi" rel="noopener">CC BY-NC-SA 4.0</a>: được chia sẻ và sửa đổi cho mục đích phi thương mại, ghi nguồn, và phát hành lại theo cùng giấy phép. Chánh văn lấy từ CBETA.</p>
       <ul class="lien-ket">
@@ -74,7 +74,8 @@
     "<strong>" + C.so(t.so_kinh) + "</strong> bộ kinh, <strong>" + C.so(t.so_quyen) +
     "</strong> quyển, <strong>" + C.so(t.so_doi) + "</strong> bộ có DOI.";
   document.getElementById("cap-nhat").textContent =
-    "Cập nhật lần cuối " + C.ngayVN(t.cap_nhat) + " lúc " + t.cap_nhat.slice(11, 16) + " (giờ Việt Nam).";
+    "Cập nhật lần cuối " + C.ngayVN(t.cap_nhat) + " lúc " + t.cap_nhat.slice(11, 16) + " (giờ Việt Nam)." +
+    (t.blog_ok === false ? " Blog gốc hiện không truy cập được; tài liệu mới được cập nhật từ Zenodo." : "");
 
   var kinh = D.muc.filter(function (d) { return d.ma || (d.nhom === "dmk" && d.han); });
   var moi = kinh.slice().sort(function (a, b) { return a.ngay < b.ngay ? 1 : a.ngay > b.ngay ? -1 : 0; }).slice(0, 8);

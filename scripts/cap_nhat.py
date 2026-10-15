@@ -35,6 +35,16 @@ from pathlib import Path
 # ---------------------------------------------------------------- cấu hình
 BLOG = "https://hoadaochepkinhchuhan.blogspot.com"
 ZENODO_API = "https://zenodo.org/api/records/"
+ORCID = "0009-0002-2778-8099"                         # ORCID của Hoa Đạo trên Zenodo
+TEN_TAC_GIA = {"hoa, đạo", "hoa đạo", "đạo hoa", "hoa, dao", "hoa dao", "華道"}
+# các câu tìm trên Zenodo, thử lần lượt; câu nào ra kết quả đúng tác giả thì dùng câu đó
+CAU_TIM_ZENODO = [
+    f'metadata.creators.person_or_org.identifiers.identifier:"{ORCID}"',
+    f'creators.orcid:"{ORCID}"',
+    f'"{ORCID}"',
+    'metadata.creators.person_or_org.name:"Hoa, Đạo"',
+]
+CO_TRANG_ZENODO = 25                                  # số bản ghi mỗi trang khi tìm
 TAI_ANH = os.environ.get("TAI_ANH", "1") != "0"      # đặt TAI_ANH=0 để không tải ảnh
 CO_ANH = 1000                                         # cạnh dài ảnh khi tải về (px)
 ANH_TOI_DA = 4 * 1024 * 1024                          # bỏ qua ảnh lớn hơn 4 MB
@@ -93,6 +103,21 @@ class Nguon:
         finally:
             time.sleep(NGHI_ZENODO)
 
+    def tim_zenodo(self, cau: str, trang: int) -> dict:
+        if self.mau:
+            f = self.mau / f"zenodo-tim-{trang}.json"
+            return json.loads(f.read_text("utf-8")) if f.exists() else {"hits": {"hits": []}}
+        url = (ZENODO_API.rstrip("/") + "?" + urllib.parse.urlencode(
+            {"q": cau, "size": CO_TRANG_ZENODO, "page": trang, "sort": "newest"}))
+        try:
+            return json.loads(tai(url))
+        finally:
+            time.sleep(NGHI_ZENODO)
+
+    def dang_bai(self) -> str:
+        f = (self.mau or GOC) / "dang-bai.txt"
+        return f.read_text("utf-8") if f.exists() else ""
+
     def anh(self, url: str) -> bytes | None:
         if self.mau:
             return None
@@ -149,6 +174,42 @@ def tach_tieu_de(tieu_de: str) -> dict:
             kq["han"] = h.group(0).strip()
             kq["hv"] = phan[h.end():].strip() or None
     return kq
+
+
+BO_THEO_SO = [
+    (1, 151, "Bộ A Hàm"), (152, 219, "Bộ Bổn Duyên"), (220, 261, "Bộ Bát Nhã"),
+    (262, 277, "Bộ Pháp Hoa"), (278, 309, "Bộ Hoa Nghiêm"), (310, 373, "Bộ Bảo Tích"),
+    (374, 396, "Bộ Niết Bàn"), (397, 424, "Bộ Đại Tập"), (425, 847, "Bộ Kinh Tập"),
+    (848, 1420, "Bộ Mật Giáo"), (1421, 1504, "Bộ Luật"), (1505, 1535, "Bộ Thích Kinh Luận"),
+    (1536, 1563, "Bộ Tỳ Đàm"), (1564, 1578, "Bộ Trung Quán"), (1579, 1627, "Bộ Du Già"),
+    (1628, 1692, "Bộ Luận Tập"), (1693, 1803, "Bộ Kinh Sớ"), (1804, 1815, "Bộ Luật Sớ"),
+    (1816, 1850, "Bộ Luận Sớ"), (1851, 2025, "Bộ Chư Tông"), (2026, 2120, "Bộ Sử Truyện"),
+    (2121, 2136, "Bộ Sử Vị"), (2137, 2144, "Bộ Ngoại Giáo"), (2145, 2184, "Bộ Mục Lục"),
+    (2732, 2864, "Bộ Cổ Dật"), (2865, 2920, "Bộ Nghi Tợ"),
+]
+NHAN_VAN_TUC = "Vạn Tụng Tạng"   # giữ đúng nhãn đang dùng trên blog
+
+
+def bo_theo_ma(ma: str | None) -> list[str]:
+    if not ma:
+        return [NHAN_DMK]
+    if ma.startswith("X"):
+        return [NHAN_VAN_TUC]
+    so = int(re.match(r"T\d+n(\d+)", ma).group(1))
+    return [ten for lo, hi, ten in BO_THEO_SO if lo <= so <= hi][:1]
+
+
+def tach_tieu_de_tu_do(tieu_de: str) -> dict:
+    """Như tach_tieu_de, nhưng mã tạng có thể nằm ở bất kỳ đâu (tiêu đề trên Zenodo)."""
+    kq = tach_tieu_de(tieu_de)
+    if kq["ma"]:
+        return kq
+    m = re.search(r"\b([TX])(\d{1,3})[Nn](\d{1,4})([A-Za-z]?)\b", tieu_de)
+    if not m:
+        return kq
+    con_lai = (tieu_de[:m.start()] + " " + tieu_de[m.end():]).strip(" -–—_|:")
+    kq2 = tach_tieu_de(f"{m.group(0)} {con_lai}")
+    return kq2 if kq2["ma"] else kq
 
 
 def nhom_cua(d: dict) -> str:
@@ -261,6 +322,9 @@ class LamSach(HTMLParser):
             truoc = s
             s = re.sub(r"<(span|div|b|i|strong|em|u|font)>\s*</\1>", "", s)
         s = re.sub(r"(<br>\s*){3,}", "<br><br>", s)
+        # bấm vào ảnh bìa → mở ảnh đã lưu ở đây thay vì ảnh trên Blogspot
+        s = re.sub(r'<a href="https?://[^"]*(?:googleusercontent\.com|bp\.blogspot\.com)[^"]*"([^>]*)>(\s*<img src="(\.\./anh/[^"]+)")',
+                   r'<a href="\3"\1>\2', s)
         return s.strip()
 
 
@@ -372,7 +436,7 @@ MAU_BAI = """<!doctype html>
 <main class="bai">
   <p class="duong-dan"><a href="../muc-luc.html">Mục lục</a>{bo_html}</p>
   <h1>{tieu_de_html}</h1>
-  <p class="thong-tin">Đăng ngày {ngay} · <a href="{goc}" rel="noopener">Xem bài trên blog gốc</a></p>
+  <p class="thong-tin">{thong_tin}</p>
   {hop_tai}
   <article class="noi-dung">
 {noi_dung}
@@ -398,7 +462,7 @@ def hop_tai_ve(muc: dict, z: dict | None) -> str:
         li = "".join(
             f'<li><a href="{html.escape(f["url"])}" rel="noopener">{html.escape(f["ten"])}</a>'
             f'<span class="co">{f"{f["kb"]:,}".replace(",", ".")} KB</span></li>'
-            for f in z["files"])
+            for f in sorted(z["files"], key=lambda f: (not f["ten"].lower().endswith(".pdf"), f["ten"])))
         dong.append(f'<ul class="ds-file">{li}</ul>')
     elif muc.get("tai_ve"):
         dong.append(f'<p><a href="{html.escape(muc["tai_ve"])}" rel="noopener">Tải file</a></p>')
@@ -424,23 +488,111 @@ def ten_tep_bai(link: str, id_du_phong: str) -> str:
     return (ten or id_du_phong)[:120] + ".html"
 
 
+# ---------------------------------------------------------------- nguồn ngoài blog
+def dung_tac_gia(rec: dict) -> bool:
+    for c in (rec.get("metadata") or {}).get("creators") or []:
+        po = c.get("person_or_org") or {}
+        ten = (c.get("name") or po.get("name") or "").strip().lower()
+        orcid = c.get("orcid") or next(
+            (i.get("identifier") for i in po.get("identifiers") or []
+             if (i.get("scheme") or "").lower() == "orcid"), "")
+        if orcid == ORCID or ten in TEN_TAC_GIA:
+            return True
+    return False
+
+
+def keo_zenodo(nguon: Nguon) -> list[dict] | None:
+    """Mọi bản ghi của Hoa Đạo trên Zenodo. None nếu không tìm được (lỗi mạng, sai câu tìm)."""
+    for cau in CAU_TIM_ZENODO:
+        ket_qua, trang = {}, 1
+        try:
+            while True:
+                hits = (nguon.tim_zenodo(cau, trang).get("hits") or {}).get("hits") or []
+                if not hits:
+                    break
+                for r in hits:
+                    if dung_tac_gia(r):
+                        ket_qua[str(r.get("id") or r.get("recid"))] = r
+                if len(hits) < CO_TRANG_ZENODO or trang * CO_TRANG_ZENODO >= 9900:
+                    break
+                trang += 1
+        except Exception as e:
+            print(f"  ! tìm Zenodo ({cau}): {e}", file=sys.stderr)
+            continue
+        if ket_qua:
+            print(f"Zenodo: tìm thấy {len(ket_qua)} bản ghi của Hoa Đạo")
+            return list(ket_qua.values())
+    print("::warning::Không tìm được bản ghi nào của Hoa Đạo trên Zenodo.")
+    return None
+
+
+def doc_dang_bai(van_ban: str) -> list[dict]:
+    """Đọc dang-bai.txt: mỗi dòng  mã | tên Hán | tên Hán Việt | số quyển | DOI | bộ."""
+    ds = []
+    for so_dong, dong in enumerate(van_ban.splitlines(), 1):
+        dong = dong.strip()
+        if not dong or dong.startswith("#"):
+            continue
+        cot = [c.strip() for c in dong.split("|")] + [""] * 6
+        ma_tho, han, hv, quyen, doi_tho, bo = cot[:6]
+        m = RE_MA.match(ma_tho)
+        ma = (f"{m.group(1)}{int(m.group(2)):02d}n{m.group(3).zfill(4)}{m.group(4).lower()}"
+              if m else None)
+        md = RE_DOI.search(doi_tho)
+        if not (han or hv):
+            print(f"  ! dang-bai.txt dòng {so_dong}: thiếu tên, bỏ qua", file=sys.stderr)
+            continue
+        ds.append({
+            "ma": ma, "ma_phu": None if m else (ma_tho or None), "han": han or None,
+            "hv": hv or None, "quyen": int(quyen) if quyen.isdigit() else None,
+            "so_doi": md.group(1) if md else None,
+            "bo": [b.strip() for b in bo.split(",") if b.strip()] or bo_theo_ma(ma),
+        })
+    return ds
+
+
 # ---------------------------------------------------------------- chính
+def ghi_trang(tep: str, *, tieu_de: str, goc: str, nhan: list[str], tt: dict,
+              thong_tin: str, hop_tai: str, noi_dung: str, cap_nhat: str):
+    bo_html = "".join(
+        f' / <a href="../muc-luc.html?bo={urllib.parse.quote(b)}">{html.escape(b)}</a>'
+        for b in nhan)
+    if tt.get("ma") or tt.get("han"):
+        tieu_de_html = (f'<span class="ma">{html.escape(tt.get("ma") or tt.get("ma_phu") or "")}</span> '
+                        f'<span class="han" lang="zh-Hant">{html.escape(tt.get("han") or "")}</span> '
+                        f'<span class="hv">{html.escape(tt.get("hv") or "")}</span>')
+    else:
+        tieu_de_html = html.escape(tieu_de)
+    (THU_MUC_BAI / tep).write_text(MAU_BAI.format(
+        tieu_de_the=html.escape(tieu_de), goc=html.escape(goc), bo_html=bo_html,
+        tieu_de_html=tieu_de_html, thong_tin=thong_tin, hop_tai=hop_tai,
+        noi_dung=noi_dung, cap_nhat=cap_nhat), "utf-8")
+
+
 def xu_ly(nguon: Nguon):
     THU_MUC_BAI.mkdir(exist_ok=True)
     THU_MUC_DATA.mkdir(exist_ok=True)
     thong_ke = {"anh_moi": 0, "anh_bo_qua": 0}
     doi_anh = lam_doi_anh(nguon, thong_ke)
     bay_gio = datetime.now(GIO_VN)
+    cap_nhat = bay_gio.strftime("%d/%m/%Y")
 
-    bai = [("bai", e) for e in keo_feed(nguon, "posts")]
-    bai += [("trang", e) for e in keo_feed(nguon, "pages")]
-    print(f"Blogger: {sum(1 for l, _ in bai if l == 'bai')} bài, "
-          f"{sum(1 for l, _ in bai if l == 'trang')} trang tĩnh")
-    if not bai:
-        sys.exit("Không lấy được bài nào từ blog — dừng lại để không ghi đè dữ liệu cũ.")
+    # 1. Blog gốc. Không vào được thì ghi chú lại và chạy tiếp với các nguồn khác.
+    try:
+        bai = [("bai", e) for e in keo_feed(nguon, "posts")]
+        bai += [("trang", e) for e in keo_feed(nguon, "pages")]
+    except Exception as e:
+        print(f"  ! blog: {e}", file=sys.stderr)
+        bai = []
+    blog_ok = any(l == "bai" for l, _ in bai)
+    if blog_ok:
+        print(f"Blogger: {sum(1 for l, _ in bai if l == 'bai')} bài, "
+              f"{sum(1 for l, _ in bai if l == 'trang')} trang tĩnh")
+    else:
+        print("::warning::Không lấy được bài nào từ blog gốc. "
+              "Giữ nguyên các bài đã lưu, chỉ cập nhật từ Zenodo và dang-bai.txt.")
 
-    danh_sach, cac_doi = [], set()
-    tho = []
+    tho, cac_doi = [], set()
     for loai, e in bai:
         tieu_de = html.unescape(e.get("title", {}).get("$t", "")).strip() or "(không tiêu đề)"
         goc = next((l["href"] for l in e.get("link", []) if l.get("rel") == "alternate"), "")
@@ -451,57 +603,136 @@ def xu_ly(nguon: Nguon):
         for m in RE_DOI.finditer(noi_dung_tho):
             cac_doi.add(m.group(1))
 
+    # 2. Zenodo (tự động) và dang-bai.txt (đăng tay)
+    ban_ghi = keo_zenodo(nguon) or []
+    dem = json.loads(DEM_ZENODO.read_text("utf-8")) if DEM_ZENODO.exists() else {}
+    for r in ban_ghi:
+        so = str(r.get("id") or r.get("recid"))
+        tom = tom_tat_zenodo(so, r)
+        if tom["files"]:
+            dem[so] = tom
+    DEM_ZENODO.write_text(json.dumps(dem, ensure_ascii=False, indent=0), "utf-8")
+    tay = doc_dang_bai(nguon.dang_bai())
+    cac_doi |= {t["so_doi"] for t in tay if t["so_doi"]}
     dem = tra_zenodo(nguon, cac_doi)
-    # link giữa các bài trên blog → trỏ sang trang lưu tương ứng trên site này
-    ban_do = {chuan_hoa_link(g): ten_tep_bai(g, i) for _, _, g, _, _, i, _ in tho if g}
 
+    # 3. Bài từ blog
+    ban_do = {chuan_hoa_link(g): ten_tep_bai(g, i) for _, _, g, _, _, i, _ in tho if g}
+    danh_sach, can_ghi = [], []
     for loai, tieu_de, goc, noi_dung_tho, nhan, id_, e in tho:
         p = LamSach(doi_anh, ban_do)
         p.feed(noi_dung_tho)
         p.close()
-        noi_dung = p.ket_qua()
         m = RE_DOI.search(noi_dung_tho)
-        doi = f"10.5281/zenodo.{m.group(1)}" if m else None
-        tai_ve = next((h for h, _ in p.links if RE_TAI_VE.search(h or "")), None)
         tt = tach_tieu_de(tieu_de)
-        tep = ten_tep_bai(goc, id_)
-        ngay = (e.get("published", {}).get("$t") or "")[:10]
-        z = dem.get(m.group(1)) if m else None
-
         muc = {
-            "loai": loai, "tieu_de": tieu_de, **tt, "bo": nhan, "ngay": ngay,
-            "doi": doi, "tai_ve": tai_ve, "goc": goc, "tep": f"bai/{tep}",
+            "loai": loai, "tieu_de": tieu_de, **tt, "bo": nhan,
+            "ngay": (e.get("published", {}).get("$t") or "")[:10],
+            "doi": f"10.5281/zenodo.{m.group(1)}" if m else None,
+            "tai_ve": next((h for h, _ in p.links if RE_TAI_VE.search(h or "")), None),
+            "goc": goc, "tep": f"bai/{ten_tep_bai(goc, id_)}",
         }
-        muc["nhom"] = nhom_cua(muc)
+        danh_sach.append(muc)
+        can_ghi.append((muc, nhan, tt, p.ket_qua()))
+
+    # Mục cũ trong bản lưu: bài blog lần này không thấy (blog lỗi hoặc bài bị gỡ) vẫn giữ lại
+    cu = THU_MUC_DATA / "muc-luc.json"
+    muc_cu = json.loads(cu.read_text("utf-8")).get("muc", []) if cu.exists() else []
+    tep_moi = {d["tep"] for d in danh_sach}
+    giu_blog = [d for d in muc_cu if d.get("loai") in ("bai", "trang")
+                and d["tep"] not in tep_moi and (GOC / d["tep"]).exists()]
+    for d in giu_blog:
+        if blog_ok:
+            d["khong_con_tren_blog"] = True
+
+    # 4. Mục từ Zenodo / dang-bai.txt chưa có trên blog (kể cả bài blog đã lưu từ trước)
+    bai_blog = danh_sach + giu_blog
+    doi_da_co = {d["doi"].rsplit(".", 1)[-1] for d in bai_blog if d.get("doi")}
+    theo_ma = {d["ma"]: d for d in bai_blog if d.get("ma")}
+    ngoai_blog = {}   # khóa: mã tạng hoặc số bản ghi Zenodo
+    for r in ban_ghi:
+        so = str(r.get("id") or r.get("recid"))
+        md = r.get("metadata") or {}
+        chung = (r.get("conceptdoi") or "").rsplit(".", 1)[-1]
+        if so in doi_da_co or (chung and chung in doi_da_co):
+            continue
+        tieu_de = (md.get("title") or "").strip() or f"Zenodo {so}"
+        tt = tach_tieu_de_tu_do(tieu_de)
+        if tt["ma"] in theo_ma:
+            d = theo_ma[tt["ma"]]
+            if not d["doi"]:          # bài blog chưa ghi DOI → bổ sung từ Zenodo
+                d["doi"] = f"10.5281/zenodo.{so}"
+            continue
+        p = LamSach(lambda u: u)
+        p.feed(md.get("description") or "")
+        p.close()
+        ngoai_blog[tt["ma"] or so] = {
+            "loai": "zenodo", "so": so, "tieu_de": tieu_de, **tt,
+            "ngay": md.get("publication_date") or "", "noi_dung": p.ket_qua(),
+            "bo": bo_theo_ma(tt["ma"]),
+        }
+    for t in tay:   # đăng tay: ghi đè mục Zenodo cùng mã
+        if t["ma"] and t["ma"] in theo_ma:
+            if t["so_doi"] and not theo_ma[t["ma"]]["doi"]:
+                theo_ma[t["ma"]]["doi"] = f"10.5281/zenodo.{t['so_doi']}"
+            continue
+        if t["so_doi"] and t["so_doi"] in doi_da_co:
+            continue
+        z = dem.get(t["so_doi"] or "") or {}
+        tieu_de = " ".join(filter(None, [t["ma"] or t["ma_phu"], t["han"], t["hv"],
+                                         f"({t['quyen']:02d} quyển)" if t["quyen"] else None]))
+        ngoai_blog[t["ma"] or t["so_doi"] or tieu_de] = {
+            "loai": "tay", "so": t["so_doi"], "tieu_de": tieu_de,
+            "ma": t["ma"], "ma_phu": t["ma_phu"], "han": t["han"], "hv": t["hv"],
+            "quyen": t["quyen"], "ngay": z.get("ngay") or bay_gio.strftime("%Y-%m-%d"),
+            "noi_dung": "", "bo": t["bo"],
+        }
+    for k in ngoai_blog.values():
+        so = k.pop("so")
+        noi_dung = k.pop("noi_dung")
+        tt = {x: k.get(x) for x in ("ma", "ma_phu", "han", "hv", "quyen")}
+        muc = {**k, "doi": f"10.5281/zenodo.{so}" if so else None, "tai_ve": None,
+               "goc": f"https://zenodo.org/records/{so}" if so else "",
+               "tep": (f"bai/zenodo-{so}.html" if so else
+                       "bai/tay-" + re.sub(r"[^a-z0-9]+", "-", khong_dau(k["hv"] or k["tieu_de"])).strip("-")[:60] + ".html")}
+        danh_sach.append(muc)
+        can_ghi.append((muc, muc["bo"], tt, noi_dung))
+    if ngoai_blog:
+        print(f"Ngoài blog: {len(ngoai_blog)} mục từ Zenodo / dang-bai.txt")
+
+    # 5. Ghi trang
+    for muc, nhan, tt, noi_dung in can_ghi:
+        so = muc["doi"].rsplit(".", 1)[-1] if muc["doi"] else None
+        z = dem.get(so) if so else None
         if z and z.get("files"):
             muc["files"] = len(z["files"])
-        muc["tim"] = khong_dau(" ".join(filter(None, [tieu_de, " ".join(nhan)])))
-        danh_sach.append(muc)
-
-        bo_html = "".join(
-            f' / <a href="../muc-luc.html?bo={urllib.parse.quote(b)}">{html.escape(b)}</a>'
-            for b in nhan)
-        if tt["ma"] or tt["han"]:
-            tieu_de_html = (f'<span class="ma">{html.escape(tt["ma"] or tt.get("ma_phu") or "")}</span> '
-                            f'<span class="han" lang="zh-Hant">{html.escape(tt["han"] or "")}</span> '
-                            f'<span class="hv">{html.escape(tt["hv"] or "")}</span>')
+        muc["tim"] = khong_dau(" ".join(filter(None, [muc["tieu_de"], " ".join(nhan)])))
+        if muc["loai"] in ("bai", "trang"):
+            thong_tin = (f'Đăng ngày {ngay_vn(muc["ngay"])} · '
+                         f'<a href="{html.escape(muc["goc"])}" rel="noopener">Xem bài trên blog gốc</a>')
+        elif muc["goc"]:
+            thong_tin = (f'Công bố ngày {ngay_vn(muc["ngay"])} · '
+                         f'<a href="{html.escape(muc["goc"])}" rel="noopener">Xem bản ghi trên Zenodo</a>')
         else:
-            tieu_de_html = html.escape(tieu_de)
-        (THU_MUC_BAI / tep).write_text(MAU_BAI.format(
-            tieu_de_the=html.escape(tieu_de), goc=html.escape(goc), bo_html=bo_html,
-            tieu_de_html=tieu_de_html, ngay=ngay_vn(ngay), hop_tai=hop_tai_ve(muc, z),
-            noi_dung=noi_dung, cap_nhat=bay_gio.strftime("%d/%m/%Y"),
-        ), "utf-8")
+            thong_tin = f'Cập nhật ngày {ngay_vn(muc["ngay"])}'
+        ghi_trang(muc["tep"].split("/", 1)[1], tieu_de=muc["tieu_de"], goc=muc["goc"],
+                  nhan=nhan, tt=tt, thong_tin=thong_tin, hop_tai=hop_tai_ve(muc, z),
+                  noi_dung=noi_dung, cap_nhat=cap_nhat)
 
-    # Giữ lại các mục đã có trong bản lưu nhưng nay không còn trên blog
-    # (bài bị gỡ, blog lỗi một phần...). Đây là bản dự phòng nên không xóa gì.
-    cu = THU_MUC_DATA / "muc-luc.json"
-    if cu.exists():
-        da_co = {d["tep"] for d in danh_sach}
-        for d in json.loads(cu.read_text("utf-8")).get("muc", []):
-            if d["tep"] not in da_co and (GOC / d["tep"]).exists():
-                d["khong_con_tren_blog"] = True
-                danh_sach.append(d)
+    # 6. Giữ lại các mục đã lưu mà lần này không thấy. Đây là bản dự phòng nên không xóa gì.
+    #    Riêng trang Zenodo / đăng tay nào nay đã có bài blog tương ứng thì bỏ để khỏi trùng.
+    danh_sach += giu_blog
+    tep_da_co = {d["tep"] for d in danh_sach}
+    doi_hien = {d["doi"] for d in danh_sach if d.get("doi")}
+    ma_hien = {d["ma"] for d in danh_sach if d.get("ma")}
+    for d in muc_cu:
+        if d.get("loai") not in ("zenodo", "tay") or d["tep"] in tep_da_co:
+            continue
+        if (d.get("doi") in doi_hien) or (d.get("ma") in ma_hien):
+            (GOC / d["tep"]).unlink(missing_ok=True)
+            continue
+        if (GOC / d["tep"]).exists():
+            danh_sach.append(d)
 
     for d in danh_sach:
         d["nhom"] = nhom_cua(d)
@@ -513,6 +744,7 @@ def xu_ly(nguon: Nguon):
         "so_kinh": sum(1 for d in danh_sach if la_kinh(d)),
         "so_quyen": sum(d["quyen"] or 0 for d in danh_sach if la_kinh(d)),
         "so_doi": sum(1 for d in danh_sach if d["doi"]),
+        "blog_ok": blog_ok,
     }
     goi = {"tong": tong, "muc": danh_sach}
     (THU_MUC_DATA / "muc-luc.json").write_text(
