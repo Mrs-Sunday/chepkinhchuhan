@@ -12480,5 +12480,73 @@
 "url": "https://zenodo.org/records/23227088/files/%5BWord%5D%20T09N0278%20%E5%A4%A7%E6%96%B9%E5%BB%A3%E4%BD%9B%E8%8F%AF%E5%9A%B4%E7%B6%93%20Kinh%20%C4%90%E1%BA%A1i%20Ph%C6%B0%C6%A1ng%20Qu%E1%BA%A3ng%20Ph%E1%BA%ADt%20Hoa%20Nghi%C3%AAm%20%2860%20quy%E1%BB%83n%29.zip?download=1"
 }
 ]
+},
+"23383252": {
+"tieu_de": "T01N0023 大樓炭經 Kinh Đại Lâu Thán (06 quyển)",
+"ngay": "2026-10-15",
+"doi_chung": "10.5281/zenodo.23383251",
+"giay_phep": "cc-by-nc-sa-4.0",
+"files": [
+{
+"ten": "T0023_001.docx",
+"kb": 1060,
+"url": "https://zenodo.org/records/23383252/files/T0023_001.docx?download=1"
+},
+{
+"ten": "T01N0023 大樓炭經 Kinh Đại Lâu Thán (Quyển 02).pdf",
+"kb": 1569,
+"url": "https://zenodo.org/records/23383252/files/T01N0023%20%E5%A4%A7%E6%A8%93%E7%82%AD%E7%B6%93%20Kinh%20%C4%90%E1%BA%A1i%20L%C3%A2u%20Th%C3%A1n%20%28Quy%E1%BB%83n%2002%29.pdf?download=1"
+},
+{
+"ten": "T01N0023 大樓炭經 Kinh Đại Lâu Thán (Quyển 05).pdf",
+"kb": 1472,
+"url": "https://zenodo.org/records/23383252/files/T01N0023%20%E5%A4%A7%E6%A8%93%E7%82%AD%E7%B6%93%20Kinh%20%C4%90%E1%BA%A1i%20L%C3%A2u%20Th%C3%A1n%20%28Quy%E1%BB%83n%2005%29.pdf?download=1"
+},
+{
+"ten": "T01N0023 大樓炭經 Kinh Đại Lâu Thán (Quyển 01).pdf",
+"kb": 1504,
+"url": "https://zenodo.org/records/23383252/files/T01N0023%20%E5%A4%A7%E6%A8%93%E7%82%AD%E7%B6%93%20Kinh%20%C4%90%E1%BA%A1i%20L%C3%A2u%20Th%C3%A1n%20%28Quy%E1%BB%83n%2001%29.pdf?download=1"
+},
+{
+"ten": "T01N0023 大樓炭經 Kinh Đại Lâu Thán (Quyển 04).pdf",
+"kb": 1485,
+"url": "https://zenodo.org/records/23383252/files/T01N0023%20%E5%A4%A7%E6%A8%93%E7%82%AD%E7%B6%93%20Kinh%20%C4%90%E1%BA%A1i%20L%C3%A2u%20Th%C3%A1n%20%28Quy%E1%BB%83n%2004%29.pdf?download=1"
+},
+{
+"ten": "T01N0023 大樓炭經 Kinh Đại Lâu Thán (Quyển 06).pdf",
+"kb": 1376,
+"url": "https://zenodo.org/records/23383252/files/T01N0023%20%E5%A4%A7%E6%A8%93%E7%82%AD%E7%B6%93%20Kinh%20%C4%90%E1%BA%A1i%20L%C3%A2u%20Th%C3%A1n%20%28Quy%E1%BB%83n%2006%29.pdf?download=1"
+},
+{
+"ten": "T01N0023 大樓炭經 Kinh Đại Lâu Thán (Quyển 03).pdf",
+"kb": 1549,
+"url": "https://zenodo.org/records/23383252/files/T01N0023%20%E5%A4%A7%E6%A8%93%E7%82%AD%E7%B6%93%20Kinh%20%C4%90%E1%BA%A1i%20L%C3%A2u%20Th%C3%A1n%20%28Quy%E1%BB%83n%2003%29.pdf?download=1"
+},
+{
+"ten": "T0023_002.docx",
+"kb": 1089,
+"url": "https://zenodo.org/records/23383252/files/T0023_002.docx?download=1"
+},
+{
+"ten": "T0023_003.docx",
+"kb": 1073,
+"url": "https://zenodo.org/records/23383252/files/T0023_003.docx?download=1"
+},
+{
+"ten": "T0023_004.docx",
+"kb": 1088,
+"url": "https://zenodo.org/records/23383252/files/T0023_004.docx?download=1"
+},
+{
+"ten": "T0023_005.docx",
+"kb": 1038,
+"url": "https://zenodo.org/records/23383252/files/T0023_005.docx?download=1"
+},
+{
+"ten": "T0023_006.docx",
+"kb": 1045,
+"url": "https://zenodo.org/records/23383252/files/T0023_006.docx?download=1"
+}
+]
 }
 }
