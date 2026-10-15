@@ -3,7 +3,7 @@ name: Cập nhật và đăng website
 on:
   schedule:
     # 03:13 sáng thứ Hai giờ Việt Nam (20:13 Chủ nhật giờ UTC)
-    - cron: "13 20 * * 0"
+    - cron: "13 20 * * *"
   # nút "Run workflow" để chạy tay bất cứ lúc nào
   workflow_dispatch:
   # chạy lại khi sửa giao diện (index.html, muc-luc.html, assets/...)
