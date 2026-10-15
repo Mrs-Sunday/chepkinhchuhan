@@ -6,6 +6,7 @@
 <title>Mục lục · Chép Kinh Chữ Hán</title>
 <meta name="description" content="Mục lục file chép kinh chữ Hán có đính âm Hán Việt, tra theo mã tạng, tên Hán, tên Hán Việt, kèm DOI Zenodo.">
 <link rel="stylesheet" href="assets/kieu.css">
+<script src="assets/do-luong.js"></script>
 </head>
 <body>
 <header class="dau-trang">
@@ -26,6 +27,7 @@
         <option value="">Tất cả</option>
         <option value="T">Đại Chánh Tạng</option>
         <option value="X">Vạn Tục Tạng</option>
+        <option value="dmk">Danh mục khác</option>
         <option value="khac">Bài viết khác</option>
       </select>
     </div>
@@ -58,8 +60,15 @@
 
   // ---- dựng danh sách một lần, lọc bằng cách ẩn/hiện
   var nhom = [], nhomHienTai = null, dong = [];
+  function nhomCua(d) {
+    if (d.nhom) return d.nhom;
+    if (d.ma) return d.ma.charAt(0);
+    return (d.bo || []).indexOf("Danh mục khác") !== -1 ? "dmk" : "khac";
+  }
+
   D.muc.forEach(function (d) {
-    var khoa = d.ma ? d.ma.charAt(0) + d.ma.slice(1, 3) : "khac";
+    var n = nhomCua(d);
+    var khoa = d.ma ? d.ma.charAt(0) + d.ma.slice(1, 3) : n;
     if (!nhomHienTai || nhomHienTai.khoa !== khoa) {
       var sec = C.el("section", "nhom");
       var h2 = C.el("h2");
@@ -69,7 +78,7 @@
         var han = C.el("span", "han", t[1] + " 第" + parseInt(d.ma.slice(1, 3), 10) + "冊");
         han.lang = "zh-Hant"; h2.appendChild(han);
       } else {
-        h2.textContent = "Bài viết khác";
+        h2.textContent = n === "dmk" ? "Danh mục khác" : "Bài viết khác";
       }
       sec.appendChild(h2);
       hop.appendChild(sec);
@@ -78,7 +87,7 @@
     }
     var r = taoDong(d);
     nhomHienTai.el.appendChild(r);
-    var muc = { d: d, el: r, tang: d.ma ? d.ma.charAt(0) : "khac" };
+    var muc = { d: d, el: r, tang: n };
     nhomHienTai.dong.push(muc);
     dong.push(muc);
   });
@@ -90,10 +99,11 @@
   }
 
   function taoDong(d) {
-    var r = C.el("article", d.ma ? "dong" : "dong khac");
-    if (d.ma) r.appendChild(C.el("div", "ma", d.ma));
+    var laKinh = !!(d.ma || d.han);
+    var r = C.el("article", laKinh ? "dong" : "dong khac");
+    if (laKinh) r.appendChild(C.el("div", "ma", d.ma || d.ma_phu || ""));
     var ten = C.el("div", "ten");
-    if (d.ma) {
+    if (laKinh) {
       var han = C.el("div", "han", d.han || ""); han.lang = "zh-Hant";
       ten.appendChild(han);
       if (d.hv) ten.appendChild(C.el("div", "hv", d.hv));
@@ -158,10 +168,14 @@
     if (tang) moi.set("tang", tang);
     if (bo) moi.set("bo", bo);
     var qs = moi.toString();
-    try { history.replaceState(null, "", qs ? "?" + qs : location.pathname); } catch (e) {}
+    // cập nhật địa chỉ trang sau khi ngừng gõ 1,5 giây (để thống kê không đếm từng phím gõ)
+    clearTimeout(henDiaChi);
+    henDiaChi = setTimeout(function () {
+      try { history.replaceState(null, "", qs ? "?" + qs : location.pathname); } catch (e) {}
+    }, 1500);
   }
 
-  var hen;
+  var hen, henDiaChi;
   oTim.addEventListener("input", function () { clearTimeout(hen); hen = setTimeout(loc, 120); });
   chonTang.addEventListener("change", loc);
   chonBo.addEventListener("change", loc);

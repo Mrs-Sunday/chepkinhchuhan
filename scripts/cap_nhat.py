@@ -108,7 +108,6 @@ def keo_feed(nguon: Nguon, loai: str) -> list[dict]:
             break
         tat_ca.extend(muc)
         bat_dau += len(muc)
-      
     return tat_ca
 
 
@@ -116,6 +115,8 @@ def keo_feed(nguon: Nguon, loai: str) -> list[dict]:
 RE_MA = re.compile(r"^\s*([TX])(\d{1,3})[Nn](\d{1,4})([A-Za-z]?)\b")
 RE_HAN = re.compile(r"[㐀-鿿豈-﫿\U00020000-\U0003134f"
                     r"　-〿（）·・]+")
+RE_MA_PHU = re.compile(r"^([A-Z]{1,4}\d{2,}[A-Za-z]?)\s+")
+NHAN_DMK = "Danh mục khác"   # nhãn Blogger của các tài liệu ngoài hai tạng
 RE_QUYEN = re.compile(r"\((\d+)\s*quyển\)\s*$", re.I)
 RE_DOI = re.compile(r"10\.5281/zenodo\.(\d+)")
 RE_TAI_VE = re.compile(r"drive\.google|docs\.google|onedrive|1drv\.ms|mediafire|"
@@ -138,12 +139,33 @@ def tach_tieu_de(tieu_de: str) -> dict:
             kq["han"] = h.group(0).strip()
             t = t[h.end():].strip()
         kq["hv"] = t or None
+    else:
+        # tài liệu ngoài Đại Chánh / Vạn Tục: có thể có mã riêng (CC0002…), rồi tên Hán, tên Hán Việt
+        m = RE_MA_PHU.match(t)
+        phan = t[m.end():].strip() if m else t
+        h = RE_HAN.match(phan)
+        if h:
+            kq["ma_phu"] = m.group(1) if m else None
+            kq["han"] = h.group(0).strip()
+            kq["hv"] = phan[h.end():].strip() or None
     return kq
 
 
-def khoa_sap_xep(ma: str | None, tieu_de: str):
+def nhom_cua(d: dict) -> str:
+    """T = Đại Chánh Tạng, X = Vạn Tục Tạng, dmk = Danh mục khác, khac = bài viết khác."""
+    if d.get("ma"):
+        return d["ma"][0]
+    if NHAN_DMK in (d.get("bo") or []):
+        return "dmk"
+    return "khac"
+
+
+def khoa_sap_xep(d: dict):
+    ma, tieu_de = d.get("ma"), d.get("tieu_de", "")
     if not ma:
-        return (2, 0, 0, "", tieu_de)
+        if nhom_cua(d) == "dmk":   # trang mục lục "DANH MỤC KHÁC" đứng đầu nhóm
+            return (2, 1 if d.get("han") else 0, 0, "", tieu_de)
+        return (3, 0, 0, "", tieu_de)
     m = re.match(r"([TX])(\d+)n(\d+)([a-z]?)", ma)
     tang = 0 if m.group(1) == "T" else 1
     return (tang, int(m.group(2)), int(m.group(3)), m.group(4), tieu_de)
@@ -340,6 +362,7 @@ MAU_BAI = """<!doctype html>
 <title>{tieu_de_the} · Chép Kinh Chữ Hán</title>
 <link rel="canonical" href="{goc}">
 <link rel="stylesheet" href="../assets/kieu.css">
+<script src="../assets/do-luong.js"></script>
 </head>
 <body class="trang-bai">
 <header class="dau-trang">
@@ -449,6 +472,7 @@ def xu_ly(nguon: Nguon):
             "loai": loai, "tieu_de": tieu_de, **tt, "bo": nhan, "ngay": ngay,
             "doi": doi, "tai_ve": tai_ve, "goc": goc, "tep": f"bai/{tep}",
         }
+        muc["nhom"] = nhom_cua(muc)
         if z and z.get("files"):
             muc["files"] = len(z["files"])
         muc["tim"] = khong_dau(" ".join(filter(None, [tieu_de, " ".join(nhan)])))
@@ -457,8 +481,8 @@ def xu_ly(nguon: Nguon):
         bo_html = "".join(
             f' / <a href="../muc-luc.html?bo={urllib.parse.quote(b)}">{html.escape(b)}</a>'
             for b in nhan)
-        if tt["ma"]:
-            tieu_de_html = (f'<span class="ma">{html.escape(tt["ma"])}</span> '
+        if tt["ma"] or tt["han"]:
+            tieu_de_html = (f'<span class="ma">{html.escape(tt["ma"] or tt.get("ma_phu") or "")}</span> '
                             f'<span class="han" lang="zh-Hant">{html.escape(tt["han"] or "")}</span> '
                             f'<span class="hv">{html.escape(tt["hv"] or "")}</span>')
         else:
@@ -479,12 +503,15 @@ def xu_ly(nguon: Nguon):
                 d["khong_con_tren_blog"] = True
                 danh_sach.append(d)
 
-    danh_sach.sort(key=lambda d: khoa_sap_xep(d["ma"], d["tieu_de"]))
+    for d in danh_sach:
+        d["nhom"] = nhom_cua(d)
+    danh_sach.sort(key=khoa_sap_xep)
+    la_kinh = lambda d: d["ma"] or (d["nhom"] == "dmk" and d.get("han"))
     tong = {
         "cap_nhat": bay_gio.isoformat(timespec="minutes"),
         "so_bai": sum(1 for d in danh_sach if d["loai"] == "bai"),
-        "so_kinh": sum(1 for d in danh_sach if d["ma"]),
-        "so_quyen": sum(d["quyen"] or 0 for d in danh_sach if d["ma"]),
+        "so_kinh": sum(1 for d in danh_sach if la_kinh(d)),
+        "so_quyen": sum(d["quyen"] or 0 for d in danh_sach if la_kinh(d)),
         "so_doi": sum(1 for d in danh_sach if d["doi"]),
     }
     goi = {"tong": tong, "muc": danh_sach}
