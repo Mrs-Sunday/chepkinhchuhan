@@ -3,7 +3,7 @@
    Để trống hoặc giữ nguyên "G-XXXXXXXXXX" thì website không đo gì cả. */
 (function () {
   "use strict";
-  var MA_GA4 = "G-XXXXXXXXXX";
+  var MA_GA4 = "G-TVG69P94JK";
 
   if (!/^G-[A-Z0-9]{6,}$/.test(MA_GA4) || MA_GA4 === "G-XXXXXXXXXX") return;
   if (location.protocol === "file:") return; // không đo khi mở bản offline trên máy
